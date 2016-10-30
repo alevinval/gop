@@ -51,21 +51,29 @@ func EqualStacks(w1, w2 Stack) (eq bool) {
 	return
 }
 
-func StatesArePresent(w Stack, states ...State) bool {
-	if w == nil {
-		panic("wtf")
-	}
+func StatesArePresent(w Stack, states []State) (allPresent bool, present []State, missing []State) {
 	if states == nil || len(states) == 0 {
-		return true
+		return true, []State{}, []State{}
 	}
-	satisfied := true
+	var pCount, mCount int
+	present = make([]State, len(states))
+	missing = make([]State, len(states))
+	allPresent = true
 	for _, s := range states {
-		satisfied = satisfied && stateIsPresent(w, s)
+		isPresent := StateIsPresent(w, s)
+		allPresent = allPresent && isPresent
+		if isPresent {
+			present[pCount] = s
+			pCount++
+		} else {
+			missing[mCount] = s
+			mCount++
+		}
 	}
-	return satisfied
+	return allPresent, present[:pCount], missing[:mCount]
 }
 
-func stateIsPresent(w Stack, s State) bool {
+func StateIsPresent(w Stack, s State) bool {
 	for _, wS := range w.List() {
 		wS, _ := wS.(State)
 		if wS.Name() == s.Name() {
@@ -75,7 +83,7 @@ func stateIsPresent(w Stack, s State) bool {
 	return false
 }
 
-func delStates(w Stack, states ...State) {
+func delStates(w Stack, states []State) {
 	tmp := NewStack()
 	for _, state := range states {
 		for !w.Empty() {
@@ -92,7 +100,7 @@ func delStates(w Stack, states ...State) {
 	}
 }
 
-func addState(w Stack, states ...State) {
+func addStates(w Stack, states []State) {
 	for _, state := range states {
 		//fmt.Printf("	Adding: %q\n", state)
 		w.Push(state)
@@ -120,7 +128,7 @@ func BuildPlan(world, goal Stack) Stack {
 		desiredState, _ := pending.Peek().(State)
 
 		//fmt.Printf("Is state: %q satisfied? %t\n", desiredState.Name(), StatesArePresent(world, desiredState))
-		if StatesArePresent(world, desiredState) {
+		if StateIsPresent(world, desiredState) {
 			pending.Pop()
 			//fmt.Printf("	Removing: %q\n", p)
 			continue
@@ -139,20 +147,15 @@ func BuildPlan(world, goal Stack) Stack {
 		preconditions := action.PreConditions(world)
 		postconditions := action.PostConditions(world)
 
-		if StatesArePresent(world, preconditions...) {
-			delStates(world, preconditions...)
-			addState(world, postconditions...)
+		ok, present, missing := StatesArePresent(world, preconditions)
+		if ok {
+			delStates(world, preconditions)
+			addStates(world, postconditions)
 			plan.Push(action)
 			//fmt.Printf("Pushing action: %s\n", action)
 		} else {
-			for _, s := range preconditions {
-				if !StatesArePresent(world, s) {
-					addState(pending, s)
-				} else {
-					delStates(pending, s)
-				}
-			}
-
+			delStates(pending, present)
+			addStates(pending, missing)
 		}
 		//fmt.Println("")
 	}

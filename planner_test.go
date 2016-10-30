@@ -8,25 +8,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func stateIsPresent(w gop.Stack, s ...gop.State) bool {
+	ok, _, _ := gop.StatesArePresent(w, s)
+	return ok
+}
+
 func TestStatesArePresent(t *testing.T) {
-	w := gop.NewStack()
-	w.Push(S(1))
-	w.Push(S(2))
-	w.Push(S(3))
+	w := stack(1, 2, 3)
 
 	// Correct assertions
-	assert.True(t, gop.StatesArePresent(w, S(1)))
-	assert.True(t, gop.StatesArePresent(w, S(2)))
-	assert.True(t, gop.StatesArePresent(w, S(3)))
-	assert.True(t, gop.StatesArePresent(w, S(1), S(2)))
-	assert.True(t, gop.StatesArePresent(w, S(1), S(3)))
-	assert.True(t, gop.StatesArePresent(w, S(3), S(2)))
-	assert.True(t, gop.StatesArePresent(w, S(3), S(1)))
-	assert.True(t, gop.StatesArePresent(w, S(2), S(1), S(3)))
+	assert.True(t, stateIsPresent(w, S(1)))
+	assert.True(t, stateIsPresent(w, S(2)))
+	assert.True(t, stateIsPresent(w, S(3)))
+	assert.True(t, stateIsPresent(w, S(1), S(2)))
+	assert.True(t, stateIsPresent(w, S(1), S(3)))
+	assert.True(t, stateIsPresent(w, S(3), S(2)))
+	assert.True(t, stateIsPresent(w, S(3), S(1)))
+	assert.True(t, stateIsPresent(w, S(2), S(1), S(3)))
 
-	// Missing states.
-	assert.False(t, gop.StatesArePresent(w, S(5)))
-	assert.False(t, gop.StatesArePresent(w, S(1), S(5)))
+	//// Missing states.
+	assert.False(t, stateIsPresent(w, S(5)))
+	assert.False(t, stateIsPresent(w, S(1), S(5)))
 }
 
 func TestEqualStacks(t *testing.T) {
