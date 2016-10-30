@@ -1,14 +1,14 @@
 package gop
 
 import (
-	"fmt"
+	_ "fmt"
 )
 
-const UPPER_BOUND = 100
+const UPPER_BOUND = 1000000
 
 type State interface {
 	Name() string
-	Actions() []Action
+	Actions(goal Stack) []Action
 }
 
 type Action interface {
@@ -112,10 +112,10 @@ func BuildPlan(world, goal Stack) Stack {
 			}
 		}
 
-		fmt.Printf("  World: %s\n", world.List())
-		fmt.Printf("Pending: %s\n", pending.List())
-		fmt.Printf("  Goal: %s\n", goal.List())
-		fmt.Println("")
+		//fmt.Printf("  World: %s\n", world.List())
+		//fmt.Printf("Pending: %s\n", pending.List())
+		//fmt.Printf("  Goal: %s\n", goal.List())
+		//fmt.Println("")
 
 		desiredState, _ := pending.Peek().(State)
 
@@ -127,7 +127,7 @@ func BuildPlan(world, goal Stack) Stack {
 		}
 
 		var action Action
-		actions := desiredState.Actions()
+		actions := desiredState.Actions(goal)
 		if len(actions) == 0 {
 			pending.Pop()
 			continue
@@ -143,6 +143,7 @@ func BuildPlan(world, goal Stack) Stack {
 			delStates(world, preconditions...)
 			addState(world, postconditions...)
 			plan.Push(action)
+			//fmt.Printf("Pushing action: %s\n", action)
 		} else {
 			for _, s := range preconditions {
 				if !StatesArePresent(world, s) {
