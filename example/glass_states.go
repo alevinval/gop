@@ -35,7 +35,7 @@ func (s state) String() string {
 	return s.Name()
 }
 
-func (s state) Actions() []gop.Action {
+func (s state) Actions(_ gop.Stack) []gop.Action {
 	switch s {
 	case GLASS_IS_FULL:
 		return []gop.Action{FILL_GLASS}
@@ -65,7 +65,7 @@ func (p *Person) String() string {
 	return p.Name()
 }
 
-func (p *Person) Actions() []gop.Action {
+func (p *Person) Actions(_ gop.Stack) []gop.Action {
 	switch p.state {
 	case NOT_THIRSTY:
 		return []gop.Action{&Drink{p.PersonName()}}

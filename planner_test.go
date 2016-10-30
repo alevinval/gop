@@ -57,7 +57,7 @@ func TestEqualStacks(t *testing.T) {
 
 type MockState int
 
-func (ms MockState) Actions() []gop.Action {
+func (ms MockState) Actions(_ gop.Stack) []gop.Action {
 	return []gop.Action{}
 }
 
