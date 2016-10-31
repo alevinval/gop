@@ -6,6 +6,11 @@ import (
 
 const UPPER_BOUND = 1000000
 
+var (
+	r1 = NewStack()
+	r2 = NewStack()
+)
+
 type State interface {
 	Name() string
 	Actions(goal Stack) []Action
@@ -24,16 +29,14 @@ func EqualStacks(w1, w2 Stack) (eq bool) {
 	if len(w1.List()) == 0 {
 		return true
 	}
-	w1restore := NewStack()
-	w2restore := NewStack()
 	eq = true
 	for !w1.Empty() && !w2.Empty() {
 		s1, _ := w1.Pop().(State)
-		w1restore.Push(s1)
+		r1.Push(s1)
 		var s2 State
 		for !w2.Empty() {
 			s2, _ = w2.Pop().(State)
-			w2restore.Push(s2)
+			r2.Push(s2)
 			if s1.Name() == s2.Name() {
 				break
 			}
@@ -41,12 +44,12 @@ func EqualStacks(w1, w2 Stack) (eq bool) {
 		if s1.Name() != s2.Name() {
 			eq = false
 		}
-		for !w2restore.Empty() {
-			w2.Push(w2restore.Pop())
+		for !r2.Empty() {
+			w2.Push(r2.Pop())
 		}
 	}
-	for !w1restore.Empty() {
-		w1.Push(w1restore.Pop())
+	for !r1.Empty() {
+		w1.Push(r1.Pop())
 	}
 	return
 }
@@ -84,7 +87,6 @@ func StateIsPresent(w Stack, s State) bool {
 }
 
 func delStates(w Stack, states []State) {
-	tmp := NewStack()
 	for _, state := range states {
 		for !w.Empty() {
 			wS, _ := w.Pop().(State)
@@ -92,10 +94,10 @@ func delStates(w Stack, states []State) {
 				//fmt.Printf("Removing state: %q\n", state)
 				break
 			}
-			tmp.Push(wS)
+			r1.Push(wS)
 		}
-		for !tmp.Empty() {
-			w.Push(tmp.Pop())
+		for !r1.Empty() {
+			w.Push(r1.Pop())
 		}
 	}
 }
@@ -109,7 +111,7 @@ func addStates(w Stack, states []State) {
 
 func BuildPlan(world, goal Stack) Stack {
 	plan := NewStack()
-	pending := NewStack()
+	pending := NewStackSize(len(goal.List()))
 
 	var N int
 	for !EqualStacks(world, goal) && N < UPPER_BOUND {
@@ -145,12 +147,10 @@ func BuildPlan(world, goal Stack) Stack {
 			break
 		}
 		preconditions := action.PreConditions(world)
-		postconditions := action.PostConditions(world)
-
 		ok, present, missing := StatesArePresent(world, preconditions)
 		if ok {
 			delStates(world, preconditions)
-			addStates(world, postconditions)
+			addStates(world, action.PostConditions(world))
 			plan.Push(action)
 			//fmt.Printf("Pushing action: %s\n", action)
 		} else {
@@ -161,7 +161,7 @@ func BuildPlan(world, goal Stack) Stack {
 	}
 
 	// Sort plan.
-	sortedPlan := NewStack()
+	sortedPlan := NewStackSize(len(plan.List()))
 	for !plan.Empty() {
 		sortedPlan.Push(plan.Pop())
 	}

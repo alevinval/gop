@@ -17,10 +17,14 @@ type stack struct {
 }
 
 func NewStack() Stack {
+	return NewStackSize(1)
+}
+
+func NewStackSize(size int) Stack {
 	return &stack{
-		list: make([]Type, 1),
+		list: make([]Type, size),
 		pos:  0,
-		cap:  1,
+		cap:  size,
 	}
 }
 
