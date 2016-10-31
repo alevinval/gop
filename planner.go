@@ -1,28 +1,26 @@
 package gop
 
-import (
-	_ "fmt"
-)
-
 const UPPER_BOUND = 1000000
 
 var (
-	r1 = NewStack()
-	r2 = NewStack()
+	r1        = NewWorld()
+	r2        = NewWorld()
+	satisfied = NewWorld()
+	missing   = NewWorld()
 )
 
 type State interface {
 	Name() string
-	Actions(goal Stack) []Action
+	Action(goal World) Action
 }
 
 type Action interface {
 	Name() string
-	PreConditions(world Stack) []State
-	PostConditions(world Stack) []State
+	PreConditions(world World) []State
+	PostConditions(world World) []State
 }
 
-func EqualStacks(w1, w2 Stack) (eq bool) {
+func EqualStacks(w1, w2 World) (eq bool) {
 	if len(w1.List()) != len(w2.List()) {
 		return false
 	}
@@ -30,12 +28,12 @@ func EqualStacks(w1, w2 Stack) (eq bool) {
 		return true
 	}
 	eq = true
+	var s1, s2 State
 	for !w1.Empty() && !w2.Empty() {
-		s1, _ := w1.Pop().(State)
+		s1 = w1.Pop()
 		r1.Push(s1)
-		var s2 State
 		for !w2.Empty() {
-			s2, _ = w2.Pop().(State)
+			s2 = w2.Pop()
 			r2.Push(s2)
 			if s1.Name() == s2.Name() {
 				break
@@ -54,31 +52,27 @@ func EqualStacks(w1, w2 Stack) (eq bool) {
 	return
 }
 
-func StatesArePresent(w Stack, states []State) (allPresent bool, present []State, missing []State) {
+func StatesArePresent(w World, states []State) (allPresent bool) {
+	satisfied.Reset()
+	missing.Reset()
 	if states == nil || len(states) == 0 {
-		return true, []State{}, []State{}
+		return true
 	}
-	var pCount, mCount int
-	present = make([]State, len(states))
-	missing = make([]State, len(states))
 	allPresent = true
 	for _, s := range states {
 		isPresent := StateIsPresent(w, s)
 		allPresent = allPresent && isPresent
 		if isPresent {
-			present[pCount] = s
-			pCount++
+			satisfied.Push(s)
 		} else {
-			missing[mCount] = s
-			mCount++
+			missing.Push(s)
 		}
 	}
-	return allPresent, present[:pCount], missing[:mCount]
+	return allPresent
 }
 
-func StateIsPresent(w Stack, s State) bool {
+func StateIsPresent(w World, s State) bool {
 	for _, wS := range w.List() {
-		wS, _ := wS.(State)
 		if wS.Name() == s.Name() {
 			return true
 		}
@@ -86,15 +80,16 @@ func StateIsPresent(w Stack, s State) bool {
 	return false
 }
 
-func delStates(w Stack, states []State) {
+func delStates(w World, states []State) {
+	var ws State
 	for _, state := range states {
 		for !w.Empty() {
-			wS, _ := w.Pop().(State)
-			if wS.Name() == state.Name() {
+			ws = w.Pop()
+			if ws.Name() == state.Name() {
 				//fmt.Printf("Removing state: %q\n", state)
 				break
 			}
-			r1.Push(wS)
+			r1.Push(ws)
 		}
 		for !r1.Empty() {
 			w.Push(r1.Pop())
@@ -102,23 +97,23 @@ func delStates(w Stack, states []State) {
 	}
 }
 
-func addStates(w Stack, states []State) {
+func addStates(w World, states []State) {
 	for _, state := range states {
 		//fmt.Printf("	Adding: %q\n", state)
 		w.Push(state)
 	}
 }
 
-func BuildPlan(world, goal Stack) Stack {
-	plan := NewStack()
-	pending := NewStackSize(len(goal.List()))
+func BuildPlan(world, goal World) []Action {
+	plan := []Action{}
+	pending := NewWorldSize(len(goal.List()))
 
 	var N int
 	for !EqualStacks(world, goal) && N < UPPER_BOUND {
 		N++
 		if pending.Empty() {
-			for _, e := range goal.List() {
-				pending.Push(e)
+			for _, s := range goal.List() {
+				pending.Push(s)
 			}
 		}
 
@@ -127,7 +122,7 @@ func BuildPlan(world, goal Stack) Stack {
 		//fmt.Printf("  Goal: %s\n", goal.List())
 		//fmt.Println("")
 
-		desiredState, _ := pending.Peek().(State)
+		desiredState := pending.Peek()
 
 		//fmt.Printf("Is state: %q satisfied? %t\n", desiredState.Name(), StatesArePresent(world, desiredState))
 		if StateIsPresent(world, desiredState) {
@@ -136,34 +131,24 @@ func BuildPlan(world, goal Stack) Stack {
 			continue
 		}
 
-		var action Action
-		actions := desiredState.Actions(goal)
-		if len(actions) == 0 {
+		action := desiredState.Action(goal)
+		if action == nil {
 			pending.Pop()
 			continue
 		}
-		for _, a := range actions {
-			action = a
-			break
-		}
+
 		preconditions := action.PreConditions(world)
-		ok, present, missing := StatesArePresent(world, preconditions)
+		ok := StatesArePresent(world, preconditions)
 		if ok {
 			delStates(world, preconditions)
 			addStates(world, action.PostConditions(world))
-			plan.Push(action)
+			plan = append(plan, action)
 			//fmt.Printf("Pushing action: %s\n", action)
 		} else {
-			delStates(pending, present)
-			addStates(pending, missing)
+			delStates(pending, satisfied.List())
+			addStates(pending, missing.List())
 		}
 		//fmt.Println("")
 	}
-
-	// Sort plan.
-	sortedPlan := NewStackSize(len(plan.List()))
-	for !plan.Empty() {
-		sortedPlan.Push(plan.Pop())
-	}
-	return sortedPlan
+	return plan
 }
