@@ -13,7 +13,7 @@ const (
 
 type action byte
 
-func (a action) PreConditions(world gop.Stack) []gop.State {
+func (a action) PreConditions(world gop.World) []gop.State {
 	switch a {
 	case EMPTY_GLASS:
 		return []gop.State{GLASS_IS_FULL}
@@ -24,7 +24,7 @@ func (a action) PreConditions(world gop.Stack) []gop.State {
 	}
 }
 
-func (a action) PostConditions(world gop.Stack) []gop.State {
+func (a action) PostConditions(world gop.World) []gop.State {
 	switch a {
 	case EMPTY_GLASS:
 		return []gop.State{GLASS_IS_EMPTY}
@@ -62,10 +62,10 @@ func (d *Drink) String() string {
 	return d.Name()
 }
 
-func (d *Drink) PreConditions(world gop.Stack) []gop.State {
+func (d *Drink) PreConditions(world gop.World) []gop.State {
 	return []gop.State{NewPerson(d.name, THIRSTY), GLASS_IS_FULL}
 }
 
-func (d *Drink) PostConditions(world gop.Stack) []gop.State {
+func (d *Drink) PostConditions(world gop.World) []gop.State {
 	return []gop.State{NewPerson(d.name, NOT_THIRSTY), GLASS_IS_EMPTY}
 }

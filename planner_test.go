@@ -8,9 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func stateIsPresent(w gop.Stack, s ...gop.State) bool {
-	ok, _, _ := gop.StatesArePresent(w, s)
-	return ok
+func stateIsPresent(w gop.World, s ...gop.State) bool {
+	return gop.StatesArePresent(w, s)
 }
 
 func TestStatesArePresent(t *testing.T) {
@@ -59,8 +58,8 @@ func TestEqualStacks(t *testing.T) {
 
 type MockState int
 
-func (ms MockState) Actions(_ gop.Stack) []gop.Action {
-	return []gop.Action{}
+func (ms MockState) Action(_ gop.World) (a gop.Action) {
+	return
 }
 
 func (ms MockState) Name() string { return fmt.Sprintf("%d", ms) }
@@ -69,8 +68,8 @@ func S(n int) gop.State {
 	return MockState(n)
 }
 
-func stack(nums ...int) gop.Stack {
-	w := gop.NewStack()
+func stack(nums ...int) gop.World {
+	w := gop.NewWorld()
 	for _, n := range nums {
 		w.Push(S(n))
 	}
